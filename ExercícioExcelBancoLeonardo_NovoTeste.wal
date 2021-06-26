@@ -1,0 +1,55 @@
+�defVar --name arqRemessa --type Excel
+defVar --name arqRetorno --type Excel
+defVar --name tabelaRemessa --type DataTable
+defVar --name linhaRemessa --type Numeric
+defVar --name colunaRemessa --type Numeric
+defVar --name tabelaRetorno --type DataTable
+defVar --name linhaRetorno --type Numeric
+defVar --name colunaRetorno --type Numeric
+defVar --name contRemessa --type Numeric
+defVar --name sequenciaRemessa --type String
+defVar --name documentoRemessa --type String
+defVar --name dataVencRemessa --type String --value "20/06/2021"
+defVar --name valorRemessa --type Numeric
+defVar --name tipoPagamentoRemessa --type String
+defVar --name jurosRemessa --type Numeric
+defVar --name tipoPagamentoRetorno --type String
+defVar --name observacaoRetorno --type String
+defVar --name valorRetorno --type Numeric
+defVar --name dataPagamentoRetorno --type String
+defVar --name sequenciaRetorno --type String
+defVar --name documentoRetorno --type String
+defVar --name contRetorno --type Numeric
+defVar --name linhaUpdateRetorno --type Numeric
+defVar --name valorRemessaComJuros --type Numeric
+defVar --name cemPorCento --type Numeric --value 100
+defVar --name pagamentoEmDia --type Numeric
+defVar --name pagamentoEmAtraso --type String --value "PAGAMENTO EM ATRASO"
+defVar --name pagamentoEmAtrasoComValorDivergente --type String --value "PAGAMENTO EM ATRASO COM VALOR DIVERGENTE"
+defVar --name pagamentoComValorDivergente --type String --value "PAGAMENTO COM VALOR DIVERGENTE"
+excelOpen --file "C:\\Users\\dev1\\Downloads\\DANIELE\\Bancário\\REMESSA_BANCARIA.xlsx" arqRemessa=value
+excelGetTable --file ${arqRemessa} --getfirstsheet  --fromrow 1 --fromcolumn 1 --hasheaders  tabelaRemessa=value linhaRemessa=rows colunaRemessa=columns
+excelOpen --file "C:\\Users\\dev1\\Downloads\\DANIELE\\Bancário\\RETORNO_BANCARIO.xlsx" --savechanges  arqRetorno=value
+excelGetTable --file ${arqRetorno} --getfirstsheet  --fromrow 1 --fromcolumn 1 --hasheaders  tabelaRetorno=value linhaRetorno=rows colunaRetorno=columns
+//Vc tem duas planilhas vc tem que validar os resultados!!!!!!
+for --variable ${contRetorno} --from 1 --to ${tabelaRetorno.Rows} --step 1
+	for --variable ${contRemessa} --from 1 --to ${tabelaRemessa.Rows} --step 1
+		mapTableRow --dataTable ${tabelaRemessa} --row ${contRemessa} --mappings "name=SEQUENCIA=${sequenciaRemessa},name=DOCUMENTO=${documentoRemessa},name=DATA VENCIMENTO=${dataVencRemessa},name=VALOR=${valorRemessa},name=TIPO PAGAMENTO=${tipoPagamentoRemessa},name=% JUROS POR ATRASO=${jurosRemessa},number=="
+		mapTableRow --dataTable ${tabelaRetorno} --row ${contRetorno} --mappings "name=SEQUENCIA=${sequenciaRetorno},name=DOCUMENTO=${documentoRetorno},name=DATA PAGAMENTO=${dataPagamentoRetorno},name=VALOR=${valorRetorno},name=OBSERVAÇÃO=${observacaoRetorno},name=TIPO PAGAMENTO=${tipoPagamentoRetorno},number=="
+		setVar --name "${linhaUpdateRetorno}" --value "${contRetorno}"
+		incrementVar --number ${linhaUpdateRetorno}
+		if --left "${dataVencRemessa}" --operator "Matches" --right "${dataPagamentoRetorno}" --negate 
+			evaluate --expression "${valorRetorno}*${jurosRemessa}/${cemPorCento}+${valorRemessa}" valorRemessaComJuros=value
+			excelSet --value "${pagamentoEmAtrasoComValorDivergente}" --file ${arqRetorno} --getfirstsheet  --row ${linhaUpdateRetorno} --column 5
+		else
+			excelSet --value "${pagamentoComValorDivergente}" --file ${arqRetorno} --getfirstsheet  --row ${linhaUpdateRetorno} --column 5
+		else
+			excelSet --value "${pagamentoEmAtraso}" --file ${arqRetorno} --getfirstsheet  --row ${linhaUpdateRetorno} --column 5
+			if --left "${dataPagamentoRetorno}" --operator "Matches" --right "${dataVencRemessa}"
+				excelSet --value "${pagamentoEmDia}" --file ${arqRetorno} --getfirstsheet  --row ${linhaUpdateRetorno} --column 5
+			endIf
+		endIf
+	next
+next
+excelClose --file ${arqRetorno} --save 
+excelClose --file ${arqRemessa}*20.7.7.0
